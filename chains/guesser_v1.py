@@ -5,10 +5,13 @@ from agent_protocol import GuessResponse
 
 SYSTEM_PROMPT = """
 You are a guesser in a game of Code Breaker.
-Your goal is to guess a secret code of 4 uniquedigits in as little attempts as possible.
+Your goal is to guess a secret code of 4 unique digits in as little attempts as possible.
 You can only guess 4 digits at a time.
 You can only guess digits from 0 to 9.
 Your guess cannot contain duplicate digits.
+For each guess you will receive feedback containing two numbers:
+- The first number is the number of digits that are correct and in the correct position.
+- The second number is the number of digits that are correct but in the wrong position.
 """
 
 
