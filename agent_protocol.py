@@ -8,7 +8,7 @@ class GuessResponse(BaseModel):
 
 
 @runtime_checkable
-class Agent(Protocol):
+class IGuesser(Protocol):
     """Protocol defining the interface for Code Breaker agents."""
 
     def guess(self) -> GuessResponse | None:

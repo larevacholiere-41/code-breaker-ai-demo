@@ -1,4 +1,4 @@
-from agent_protocol import Agent, GuessResponse
+from agent_protocol import IGuesser, GuessResponse
 from evaluation_function import evaluate_guess
 from logger_provider import LoggerProvider
 from random import sample
@@ -6,7 +6,7 @@ from random import sample
 logger = LoggerProvider.get_logger('agent_test_runner')
 
 
-def test_agent(agent: Agent, secret_code: str | None = None,
+def test_agent(agent: IGuesser, secret_code: str | None = None,
                max_attempts: int = 20) -> tuple[bool, int]:
     """
     Test an agent by having it guess a secret code.
