@@ -8,7 +8,7 @@ class Config(BaseModel):
     '''
     Settings class for centralized access to environment variables.
     '''
-    BASE_MODEL: str = 'gpt-4o-mini'
+    BASE_MODEL: str = 'gpt-5-mini'
     OPENAI_API_KEY: str
 
 

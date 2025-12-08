@@ -27,3 +27,10 @@ def evaluate_guess(guess: str, secret: str) -> tuple[int, int]:
             correct_numbers += 1
 
     return correct_positions, correct_numbers
+
+
+def evaluate_guess_simplified(guess: str, secret: str) -> int:
+    validate_input(guess)
+    validate_input(secret)
+
+    return len(set(guess) & set(secret))
