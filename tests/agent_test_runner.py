@@ -81,8 +81,9 @@ def test_agent_simplified(agent: IGuesser, secret_code: str | None = None,
     return False, max_attempts
 
 
-async def test_agent_async(agent: IAsyncGuesser, secret_code: str | None = None,
-                          max_attempts: int = 20) -> tuple[bool, int]:
+async def test_agent_async(
+        agent: IAsyncGuesser, secret_code: str | None = None,
+        max_attempts: int = 20) -> tuple[bool, int]:
     """
     Test an async agent by having it guess a secret code.
 
@@ -122,8 +123,9 @@ async def test_agent_async(agent: IAsyncGuesser, secret_code: str | None = None,
     return False, max_attempts
 
 
-async def test_agent_simplified_async(agent: IAsyncGuesser, secret_code: str | None = None,
-                                      max_attempts: int = 20) -> tuple[bool, int]:
+async def test_agent_simplified_async(
+        agent: IAsyncGuesser, secret_code: str | None = None,
+        max_attempts: int = 20) -> tuple[bool, int]:
     """
     Test an async agent by having it guess a secret code using simplified evaluation.
     """
