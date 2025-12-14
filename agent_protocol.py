@@ -14,7 +14,7 @@ class IGuesser(Protocol):
     def guess(self) -> GuessResponse | None:
         """
         Generate a guess for the secret code.
-        
+
         Returns:
             GuessResponse with the guess, or None if no guess can be generated.
         """
@@ -23,7 +23,30 @@ class IGuesser(Protocol):
     def provide_feedback(self, feedback: tuple[int, int]) -> None:
         """
         Provide feedback to the agent about their previous guess.
-        
+
+        Args:
+            feedback: A tuple of (correct_positions, correct_numbers)
+        """
+        ...
+
+
+@runtime_checkable
+class IAsyncGuesser(Protocol):
+    """Protocol defining the async interface for Code Breaker agents."""
+
+    async def guess(self) -> GuessResponse | None:
+        """
+        Generate a guess for the secret code.
+
+        Returns:
+            GuessResponse with the guess, or None if no guess can be generated.
+        """
+        ...
+
+    async def provide_feedback(self, feedback: tuple[int, int]) -> None:
+        """
+        Provide feedback to the agent about their previous guess.
+
         Args:
             feedback: A tuple of (correct_positions, correct_numbers)
         """
