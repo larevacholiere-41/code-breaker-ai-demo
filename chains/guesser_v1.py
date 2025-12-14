@@ -38,3 +38,27 @@ class GuesserV1:
         if messages is not None:
             self.chat_history.append(messages[-1])
         return structured_response
+
+
+class AsyncGuesserV1:
+    """
+    AsyncGuesserV1 is an async version of GuesserV1.
+    It uses a LangChain agent to generate guesses and provide feedback asynchronously.
+    """
+
+    def __init__(self):
+        self.config = ConfigProvider.get_config()
+        self.chat_history: list = [HumanMessage(content="Provide your next guess.")]
+        self.agent = create_agent(
+            self.config.BASE_MODEL, system_prompt=SYSTEM_PROMPT, response_format=GuessResponse)
+
+    async def provide_feedback(self, feedback: tuple[int, int]) -> None:
+        self.chat_history.append(HumanMessage(content=f"{feedback[0], feedback[1]}"))
+
+    async def guess(self) -> GuessResponse | None:
+        response = await self.agent.ainvoke({"messages": self.chat_history})
+        structured_response = response.get("structured_response")
+        messages = response.get("messages")
+        if messages is not None:
+            self.chat_history.append(messages[-1])
+        return structured_response

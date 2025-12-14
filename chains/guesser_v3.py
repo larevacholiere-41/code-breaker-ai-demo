@@ -61,3 +61,48 @@ class GuesserV3:
         log.info(f"Guess: {structured_response.guess}")
         log.info(f"Reasoning: {structured_response.reasoning}")
         return GuessResponse.model_validate(structured_response.model_dump())
+
+
+class AsyncGuesserV3:
+    """
+    AsyncGuesserV3 is an async version of GuesserV3.
+    It uses a LangChain agent to generate guesses and provide feedback asynchronously.
+    """
+
+    def __init__(self, model: str | None = None):
+        self.config = ConfigProvider.get_config()
+        self.state = State()
+        model_name = model or self.config.BASE_MODEL
+        self.agent = create_agent(model_name, response_format=GuesserV3Response)
+        self.last_guess = None
+        self.last_feedback = None
+        self.round = 1
+
+    async def provide_feedback(self, feedback: tuple[int, int]) -> None:
+        if self.last_guess is None:
+            raise ValueError("No guess has been made yet.")
+        formatted_feedback = f"{self.last_guess} has {feedback[0] + feedback[1]} correct digits"
+        self.last_feedback = formatted_feedback
+        self.round += 1
+
+    async def guess(self) -> GuessResponse | None:
+        if self.round == 1:
+            log.info(f"system_message: {system_message}")
+        prompt = ChatPromptTemplate.from_messages([
+            system_message,
+            HumanMessagePromptTemplate.from_template(MESSAGE_PROMPT)])
+        chain = prompt | self.agent
+        response = await chain.ainvoke({
+            "round": self.round, "current_state": self.state.model_dump(),
+            "previous_guess": self.last_guess, "feedback": self.last_feedback})
+        structured_response = response.get("structured_response")
+        assert isinstance(structured_response, GuesserV3Response)
+        self.state = structured_response.updated_state
+        self.last_guess = structured_response.guess
+        log.info(f"Round: {self.round}")
+        log.info(f"Last guess: {self.last_guess}")
+        log.info(f"Feedback: {self.last_feedback}")
+        log.info(f"Updated state: {self.state.model_dump()}")
+        log.info(f"Guess: {structured_response.guess}")
+        log.info(f"Reasoning: {structured_response.reasoning}")
+        return GuessResponse.model_validate(structured_response.model_dump())
