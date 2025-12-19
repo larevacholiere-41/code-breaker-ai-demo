@@ -8,6 +8,26 @@ log = LoggerProvider.get_logger('test_game_engine')
 
 
 @pytest.mark.asyncio
+async def test_game_engine_feedback():
+    ge = GameEngine()
+    game_state = await ge.create_game(secrets=("4821", "8135"))
+    game_id = game_state.game_id
+
+    player_1_guesses = ["1234", "5678", "1235", "1243", "8135"]
+    player_1_expected_feedback = [2, 2, 3, 2, 4]
+    player_2_guesses = ["1234", "5678", "1235", "1243", "8135"]
+
+    for p1_guess, p2_guess in zip(player_1_guesses, player_2_guesses):
+        await ge.make_guess(game_id, p1_guess, Player.PLAYER_1)
+        await ge.make_guess(game_id, p2_guess, Player.PLAYER_2)
+
+    player_1_feedback_list = [h.feedback for h in game_state.history if h.player == Player.PLAYER_1]
+
+    for feedback, expected_feedback in zip(player_1_feedback_list, player_1_expected_feedback):
+        assert feedback == expected_feedback
+
+
+@pytest.mark.asyncio
 async def test_game_engine():
     ge = GameEngine()
     game_state = await ge.create_game(secrets=("4821", "8135"))
