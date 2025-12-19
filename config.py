@@ -11,6 +11,13 @@ class Config(BaseModel):
     BASE_MODEL: str = 'gpt-5-mini'
     OPENAI_API_KEY: str
 
+    GUESSER_MAX_ATTEMPTS: int = 15
+
+    FASTAPI_HOST: str = '0.0.0.0'
+    FASTAPI_PORT: int = 5013
+    FASTAPI_RELOAD: bool = False
+    FASTAPI_ROOT_PATH: str = '/'
+
 
 class ConfigProvider:
     __config: Optional[Config] = None

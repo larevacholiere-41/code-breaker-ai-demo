@@ -83,6 +83,7 @@ class GameEngine:
         feedback = await self.evaluate_guess(
             guess.code, game_state.player_2_secret_code if game_state.waiting_for_player
             == Player.PLAYER_1 else game_state.player_1_secret_code)
+        guess.feedback = feedback
         game_state.history.append(guess)
         game_state.waiting_for_player = (
             Player.PLAYER_2 if guess.player == Player.PLAYER_1 else Player.PLAYER_1)
