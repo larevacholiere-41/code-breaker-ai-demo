@@ -85,16 +85,26 @@ class AsyncGuesserV3:
         self.last_feedback = formatted_feedback
         self.round += 1
 
-    async def guess(self) -> GuessResponse | None:
+    async def guess(self, max_retries: int = 3) -> GuessResponse | None:
         if self.round == 1:
             log.info(f"system_message: {system_message}")
         prompt = ChatPromptTemplate.from_messages([
             system_message,
             HumanMessagePromptTemplate.from_template(MESSAGE_PROMPT)])
         chain = prompt | self.agent
-        response = await chain.ainvoke({
-            "round": self.round, "current_state": self.state.model_dump(),
-            "previous_guess": self.last_guess, "feedback": self.last_feedback})
+
+        for attempt in range(max_retries):
+            try:
+                response = await chain.ainvoke({
+                    "round": self.round, "current_state": self.state.model_dump(),
+                    "previous_guess": self.last_guess, "feedback": self.last_feedback})
+                break
+            except Exception as e:
+                log.error(f"Error guessing: {e}")
+                if attempt == max_retries - 1:
+                    raise e
+                continue
+
         structured_response = response.get("structured_response")
         assert isinstance(structured_response, GuesserV3Response)
         self.state = structured_response.updated_state
