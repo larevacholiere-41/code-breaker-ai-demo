@@ -64,3 +64,5 @@ class GuesserV3Response(BaseModel):
     updated_state: State = Field(description="Updated state of the game.")
     guess: str = Field(description="Your next guess. ")
     reasoning: str = Field(description="Reasoning for the guess.")
+    comments: str = Field(
+        description="Short explanation of the reasoning behind the guess.", max_length=512)

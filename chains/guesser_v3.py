@@ -105,4 +105,5 @@ class AsyncGuesserV3:
         log.info(f"Updated state: {self.state.model_dump()}")
         log.info(f"Guess: {structured_response.guess}")
         log.info(f"Reasoning: {structured_response.reasoning}")
-        return GuessResponse.model_validate(structured_response.model_dump())
+        return GuessResponse.model_validate({
+            "guess": structured_response.guess, "comments": structured_response.comments})
