@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class GuessResponse(BaseModel):
     """Response model for agent guesses."""
     guess: str
+    comments: str | None = None
 
 
 @runtime_checkable
