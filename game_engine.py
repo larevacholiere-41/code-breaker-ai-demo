@@ -4,7 +4,10 @@ from random import sample
 import uuid
 from pydantic import BaseModel
 from typing import Any, AsyncGenerator
+from time import time
 from evaluation_function import evaluate_guess_simplified
+
+from config import Config, ConfigProvider
 
 
 class Player(str, Enum):
@@ -27,6 +30,7 @@ class Guess(BaseModel):
 
 class GameState(BaseModel):
     game_id: str
+    created_at: float
     status: GameStatus
     game_queue_id: str
     waiting_for_player: Player | None
@@ -47,12 +51,16 @@ class QueueManager:
             self.queues[game_id] = Queue[GameState]()
         return self.queues[game_id]
 
+    def remove_queue(self, game_id: str) -> None:
+        self.queues.pop(game_id)
+
 
 class GameEngine:
 
-    def __init__(self):
+    def __init__(self, config: Config = ConfigProvider.get_config()):
         self.games: dict[str, GameState] = {}
         self.queue_manager = QueueManager()
+        self.config = config
 
     async def evaluate_guess(self, guess: str, secret: str) -> int:
         return evaluate_guess_simplified(guess, secret)
@@ -63,9 +71,9 @@ class GameEngine:
         secret_2 = secrets[1] or "".join(str(digit) for digit in sample(range(10), 4))
 
         game_state = GameState(
-            game_id=game_id, status=GameStatus.IN_PROGRESS, game_queue_id=str(uuid.uuid4()),
-            waiting_for_player=Player.PLAYER_1, winner=None, player_1_secret_code=secret_1,
-            player_2_secret_code=secret_2, history=[])
+            game_id=game_id, created_at=time(), status=GameStatus.IN_PROGRESS,
+            game_queue_id=str(uuid.uuid4()), waiting_for_player=Player.PLAYER_1, winner=None,
+            player_1_secret_code=secret_1, player_2_secret_code=secret_2, history=[])
 
         self.games[game_id] = game_state
         return game_state
@@ -113,3 +121,9 @@ class GameEngine:
         game_state.buffer[player].append(
             Guess(code=guess, feedback=0, comments=comments, player=player))
         await self.process_buffer(game_id)
+
+    async def cleanup_games(self) -> None:
+        for game_id, game_state in self.games.items():
+            if game_state.created_at + self.config.GAME_ENGINE_GAME_TIMEOUT < time():
+                self.games.pop(game_id)
+                self.queue_manager.remove_queue(game_id)

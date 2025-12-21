@@ -12,6 +12,7 @@ class Config(BaseModel):
     OPENAI_API_KEY: str
 
     GUESSER_MAX_ATTEMPTS: int = 15
+    GAME_ENGINE_GAME_TIMEOUT: int = 60 * 60 * 24 * 7  # 7 days
 
     FASTAPI_HOST: str = '0.0.0.0'
     FASTAPI_PORT: int = 5013

@@ -80,6 +80,7 @@ async def start_new_game_player_vs_ai(
     game_id = await ge.create_game(secrets=(secret_1, None))
     guesser = AsyncGuesserV3()
     background_tasks.add_task(start_guesser_task, api, game_id.game_id, guesser)
+    background_tasks.add_task(ge.cleanup_games)
     return {"game_id": game_id}
 
 

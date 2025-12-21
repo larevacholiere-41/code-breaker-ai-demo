@@ -13,7 +13,7 @@
 - [x] Test the game engine in interactive mode with GuesserV3.
 - [x] Add validation logic to the API endpoints (mainly for the guess input).
 - [x] Add rate limiting to the API.
-- [ ] Add recycling logic to the game engine (game states, queues).
+- [x] Add recycling logic to the game engine (game states, queues).
 - [ ] Create FastAPI server to interact with GuesserV1 and V3 in interactive mode.
 - [ ] RefactorGameEngine.process_buffer: move game state evaluation to a separate function
 
