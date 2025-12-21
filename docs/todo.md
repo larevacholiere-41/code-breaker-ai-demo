@@ -15,6 +15,9 @@
 - [x] Add rate limiting to the API.
 - [x] Add recycling logic to the game engine (game states, queues).
 - [x] Create FastAPI server to interact with GuesserV1 and V3 in interactive mode.
+
+- [ ] Prepare for deployment.
+
 - [ ] RefactorGameEngine.process_buffer: move game state evaluation to a separate function
 
 ## Long Term
