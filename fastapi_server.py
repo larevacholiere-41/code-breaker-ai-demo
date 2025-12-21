@@ -72,7 +72,7 @@ async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser)
 @limiter.limit("10/day")
 @limiter.limit("50/day", key_func=lambda: "global")
 async def start_new_game_player_vs_ai(
-        _: Request, api: ApiType, secret_1: str, background_tasks: BackgroundTasks):
+        request: Request, api: ApiType, secret_1: str, background_tasks: BackgroundTasks):
     # validate secret
     validate_code(secret_1)
 

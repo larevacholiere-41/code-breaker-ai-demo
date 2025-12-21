@@ -1,0 +1,15 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update
+RUN pip install --upgrade pip
+RUN pip install uv
+
+COPY pyproject.toml ./
+COPY uv.lock ./
+RUN uv sync
+
+COPY . .
+
+RUN uv run fastapi_server

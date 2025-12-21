@@ -1,0 +1,48 @@
+name: Build and push Docker image CI
+
+on:
+  push:
+    branches: [ "main" ]
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}    
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4    
+      - name: Docker Login
+        # You may pin to the exact commit or the version.
+        # uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        uses: docker/login-action@v3.4.0
+        with:
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.REGISTRY }}
+          # Username used to log against the Docker registry
+          username: ${{ github.actor }}
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker Metadata action
+        # You may pin to the exact commit or the version.
+        # uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804
+        uses: docker/metadata-action@v5.7.0
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}          
