@@ -2,22 +2,34 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware import Middleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from agent_protocol import IAsyncGuesser
 from chains.guesser_v3 import AsyncGuesserV3
 from config import ConfigProvider
 from api import API
-from fastapi_deps import ApiType
+from fastapi_deps import ApiType, validate_code
+from fastapi import Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 
 from game_engine import GameStatus, Player
 
 config = ConfigProvider.get_config()
+limiter = Limiter(key_func=get_remote_address)
+
+
+def rate_limit_exceeded_handler(request: Request, exc: Exception):
+    assert isinstance(exc, RateLimitExceeded)
+    return JSONResponse(status_code=429, content={"detail": exc.detail})
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     api = API()
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
     yield {'core_api': api}
 
 
@@ -56,8 +68,14 @@ async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser)
 
 
 @app.post("/start-new-game-player-vs-ai")
+@limiter.limit("3/minute")
+@limiter.limit("10/day")
+@limiter.limit("50/day", key_func=lambda: "global")
 async def start_new_game_player_vs_ai(
-        api: ApiType, secret_1: str, background_tasks: BackgroundTasks):
+        _: Request, api: ApiType, secret_1: str, background_tasks: BackgroundTasks):
+    # validate secret
+    validate_code(secret_1)
+
     ge = api.game_engine
     game_id = await ge.create_game(secrets=(secret_1, None))
     guesser = AsyncGuesserV3()
@@ -67,6 +85,9 @@ async def start_new_game_player_vs_ai(
 
 @app.post("/make-guess")
 async def make_guess(api: ApiType, game_id: str, guess: str):
+    # validate guess
+    validate_code(guess)
+
     ge = api.game_engine
     await ge.make_guess(game_id, guess, Player.PLAYER_1)
     return {"message": "Guess made successfully"}
