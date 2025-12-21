@@ -12,4 +12,4 @@ RUN uv sync
 
 COPY . .
 
-CMD ["uv", "run", "fastapi_server"]
+CMD ["uv", "run", "fastapi_server.py"]
