@@ -14,7 +14,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import uvicorn
 
-from game_engine import GameStatus, Player
+from game_engine import GameState, GameStatus, Player
 
 config = ConfigProvider.get_config()
 limiter = Limiter(key_func=get_remote_address)
@@ -72,16 +72,17 @@ async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser)
 @limiter.limit("10/day")
 @limiter.limit("50/day", key_func=lambda: "global")
 async def start_new_game_player_vs_ai(
-        request: Request, api: ApiType, secret_1: str, background_tasks: BackgroundTasks):
+        request: Request, api: ApiType, secret_1: str,
+        background_tasks: BackgroundTasks) -> GameState:
     # validate secret
     validate_code(secret_1)
 
     ge = api.game_engine
-    game_id = await ge.create_game(secrets=(secret_1, None))
+    game_state = await ge.create_game(secrets=(secret_1, None))
     guesser = AsyncGuesserV3()
-    background_tasks.add_task(start_guesser_task, api, game_id.game_id, guesser)
+    background_tasks.add_task(start_guesser_task, api, game_state.game_id, guesser)
     background_tasks.add_task(ge.cleanup_games)
-    return {"game_id": game_id}
+    return game_state
 
 
 @app.post("/make-guess")
