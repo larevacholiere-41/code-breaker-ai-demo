@@ -96,6 +96,9 @@ async def make_guess(api: ApiType, game_id: str, guess: str):
 
 @app.get("/get-game-updates")
 async def get_game_updates(api: ApiType, game_id: str):
+    ge = api.game_engine
+    if game_id not in ge.games:
+        return JSONResponse(status_code=404, content={"detail": "Game not found"})
     return StreamingResponse(get_game_updates_stream(api, game_id), media_type="text/event-stream")
 
 
