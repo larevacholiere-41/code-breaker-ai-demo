@@ -44,15 +44,22 @@ class GameState(BaseModel):
 class QueueManager:
 
     def __init__(self):
-        self.queues: dict[str, Queue[GameState]] = {}
+        self.queues: dict[str, set[Queue[GameState]]] = {}
 
-    def get_queue(self, game_id: str) -> Queue[GameState]:
+    def create_queue(self, game_id: str) -> Queue[GameState]:
+        queue = Queue[GameState]()
         if game_id not in self.queues:
-            self.queues[game_id] = Queue[GameState]()
-        return self.queues[game_id]
+            self.queues[game_id] = set()
+        self.queues[game_id].add(queue)
+        return queue
 
-    def remove_queue(self, game_id: str) -> None:
-        self.queues.pop(game_id)
+    def remove_queue(self, queue: Queue[GameState]) -> None:
+        for game_id, queues in self.queues.items():
+            if queue in queues:
+                queues.discard(queue)
+                if len(queues) == 0:
+                    self.queues.pop(game_id)
+                    break
 
 
 class GameEngine:
@@ -79,12 +86,17 @@ class GameEngine:
         return game_state
 
     async def listen_for_updates(self, game_id: str) -> AsyncGenerator[GameState, Any]:
-        queue = self.queue_manager.get_queue(game_id)
+        queue = self.queue_manager.create_queue(game_id)
         state = self.games[game_id]
         yield state
         while state.status != GameStatus.COMPLETED:
             state = await queue.get()
             yield state
+        self.queue_manager.remove_queue(queue)
+
+    async def publish_update(self, game_id: str, state: GameState) -> None:
+        for queue in self.queue_manager.queues[game_id]:
+            await queue.put(state)
 
     async def process_guess(self, game_id: str, guess: Guess) -> None:
         game_state = self.games[game_id]
@@ -98,7 +110,7 @@ class GameEngine:
         if feedback == 4:
             game_state.status = GameStatus.COMPLETED
             game_state.winner = guess.player
-        await self.queue_manager.get_queue(game_id).put(game_state.model_copy())
+        await self.publish_update(game_id, game_state.model_copy())
 
     async def process_buffer(self, game_id: str) -> None:
         game_state = self.games[game_id]
@@ -126,4 +138,3 @@ class GameEngine:
         for game_id, game_state in self.games.items():
             if game_state.created_at + self.config.GAME_ENGINE_GAME_TIMEOUT < time():
                 self.games.pop(game_id)
-                self.queue_manager.remove_queue(game_id)
