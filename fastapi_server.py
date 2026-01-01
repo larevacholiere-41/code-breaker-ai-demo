@@ -1,9 +1,11 @@
+import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware import Middleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from agent_protocol import IAsyncGuesser
+from chains.guesser_v1 import AsyncGuesserV1
 from chains.guesser_v3 import AsyncGuesserV3
 from config import ConfigProvider
 from api import API
@@ -52,7 +54,8 @@ async def get_game_updates_stream(api: ApiType, game_id: str):
         yield f"data: {state.model_dump_json()}\n\n"
 
 
-async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser):
+async def start_guesser_task(
+        api: ApiType, game_id: str, guesser: IAsyncGuesser, as_player: Player = Player.PLAYER_2):
     ge = api.game_engine
     max_attempts = config.GUESSER_MAX_ATTEMPTS
     game_state = ge.games[game_id]
@@ -62,8 +65,14 @@ async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser)
         guess = await guesser.guess()
         if guess is None:
             break
-        await ge.make_guess(game_id, guess.guess, Player.PLAYER_2, comments=guess.comments)
-        feedback = await ge.evaluate_guess(guess.guess, game_state.player_1_secret_code)
+
+        if as_player == Player.PLAYER_1:
+            secret_code = game_state.player_1_secret_code
+        else:
+            secret_code = game_state.player_2_secret_code
+
+        await ge.make_guess(game_id, guess.guess, as_player, comments=guess.comments)
+        feedback = await ge.evaluate_guess(guess.guess, secret_code)
         await guesser.provide_feedback((feedback, 0))
 
 
@@ -71,18 +80,34 @@ async def start_guesser_task(api: ApiType, game_id: str, guesser: IAsyncGuesser)
 @limiter.limit("3/minute")
 @limiter.limit("10/day")
 @limiter.limit("50/day", key_func=lambda: "global")
-async def start_new_game_player_vs_ai(
-        request: Request, api: ApiType, secret_1: str,
-        background_tasks: BackgroundTasks) -> GameState:
+async def start_new_game_player_vs_ai(request: Request, api: ApiType, secret_1: str) -> GameState:
     # validate secret
     validate_code(secret_1)
 
     ge = api.game_engine
     game_state = await ge.create_game(secrets=(secret_1, None))
     guesser = AsyncGuesserV3()
-    background_tasks.add_task(start_guesser_task, api, game_state.game_id, guesser)
-    background_tasks.add_task(ge.cleanup_games)
+    asyncio.create_task(start_guesser_task(api, game_state.game_id, guesser))
+    asyncio.create_task(ge.cleanup_games())
     return game_state
+
+
+@app.post("/start-new-game-ai-vs-ai")
+@limiter.limit("3/minute")
+@limiter.limit("10/day")
+@limiter.limit("50/day", key_func=lambda: "global")
+async def start_new_game_ai_vs_ai(request: Request, api: ApiType, secret: str):
+    # validate secret
+    validate_code(secret)
+
+    ge = api.game_engine
+    game_state = await ge.create_game(secrets=(secret, secret))
+    guesser1 = AsyncGuesserV1()
+    guesser2 = AsyncGuesserV3()
+    asyncio.create_task(start_guesser_task(api, game_state.game_id, guesser1, Player.PLAYER_1))
+    asyncio.create_task(start_guesser_task(api, game_state.game_id, guesser2, Player.PLAYER_2))
+    asyncio.create_task(ge.cleanup_games())
+    return game_state.model_dump()
 
 
 @app.post("/make-guess")
